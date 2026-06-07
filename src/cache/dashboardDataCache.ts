@@ -1,7 +1,9 @@
 import type { FilterState } from '@/types/dashboard'
 import { buildQueryParams } from '@/services/dashboardApi'
 import type {
+  DashboardDevolucoesDTO,
   DashboardResumoDTO,
+  ParticipacaoLojaDTO,
   ParticipacaoMarcaDTO,
   SelectOption,
   TopMarcaDTO,
@@ -10,11 +12,13 @@ import type {
   TopVendedorDTO,
   TopVendedorLucroDTO,
   VendaDiariaDTO,
+  VendasHorarioDTO,
   VendaMensalDTO,
 } from '@/types/dashboard'
 
 export type DashboardCacheEntry = {
   resumo: DashboardResumoDTO
+  devolucoesResumo: DashboardDevolucoesDTO
   vendasDiarias: VendaDiariaDTO[]
   vendasMensais: VendaMensalDTO[]
   topVendedores: TopVendedorDTO[]
@@ -23,6 +27,8 @@ export type DashboardCacheEntry = {
   topMarcas: TopMarcaDTO[]
   topMarcasLucro: TopMarcaLucroDTO[]
   participacaoMarcas: ParticipacaoMarcaDTO[]
+  participacaoLojas: ParticipacaoLojaDTO[]
+  vendasHorario: VendasHorarioDTO[]
   lojas: SelectOption[]
   vendedores: SelectOption[]
   marcas: SelectOption[]

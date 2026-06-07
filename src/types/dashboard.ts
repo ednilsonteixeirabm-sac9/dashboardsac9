@@ -48,6 +48,13 @@ export type DashboardResumoDTO = {
   percentualDevolucao: number;
 };
 
+export type DashboardDevolucoesDTO = {
+  valorDevolvido: number;
+  quantidadeDevolvida: number;
+  percentualSobreVendas: number;
+  quantidadeRegistros: number;
+};
+
 export type TopVendedorDTO = {
   vendedorId?: number;
   vendedorNome: string;
@@ -83,6 +90,19 @@ export type ParticipacaoMarcaDTO = {
   marcaNome?: string;
   valor: number;
   percentual: number;
+};
+
+export type ParticipacaoLojaDTO = {
+  lojaId: number;
+  lojaNome: string;
+  valorVenda: number;
+  percentual: number;
+};
+
+export type VendasHorarioDTO = {
+  hora: number;
+  valorVenda: number;
+  quantidadeVendida: number;
 };
 
 export type RankingLojaDTO = {

@@ -1,10 +1,12 @@
 import type {
   ComparativoPeriodoDTO,
+  DashboardDevolucoesDTO,
   DashboardResumoDTO,
   DevolucaoDTO,
   LucroDiarioDTO,
   LojaDTO,
   MarcaDTO,
+  ParticipacaoLojaDTO,
   ParticipacaoMarcaDTO,
   RankingLojaDTO,
   RegistroVendasProdutosDTO,
@@ -14,6 +16,7 @@ import type {
   TopVendedorDTO,
   TopVendedorLucroDTO,
   VendaDiariaDTO,
+  VendasHorarioDTO,
   VendaMensalDTO,
   VendedorDTO,
 } from '@/types/dashboard'
@@ -47,6 +50,12 @@ function optionalId(value: unknown): number | undefined {
   return normalized > 0 ? normalized : undefined
 }
 
+function apiHour(value: unknown): number {
+  if (typeof value === 'string' && value.trim() === '') return -1
+  const hour = Number(value)
+  return Number.isInteger(hour) ? hour : -1
+}
+
 export function normalizeDashboardResumo(raw: unknown): DashboardResumoDTO {
   const item = (raw && typeof raw === 'object' ? raw : {}) as Raw
   return {
@@ -60,6 +69,24 @@ export function normalizeDashboardResumo(raw: unknown): DashboardResumoDTO {
     valorDevolvido: num(pick(item, 'valorDevolvido', 'ValorDevolvido')),
     percentualDevolucao: num(
       pick(item, 'percentualDevolucao', 'PercentualDevolucao'),
+    ),
+  }
+}
+
+export function normalizeDashboardDevolucoes(
+  raw: unknown,
+): DashboardDevolucoesDTO {
+  const item = (raw && typeof raw === 'object' ? raw : {}) as Raw
+  return {
+    valorDevolvido: num(pick(item, 'valorDevolvido', 'ValorDevolvido')),
+    quantidadeDevolvida: num(
+      pick(item, 'quantidadeDevolvida', 'QuantidadeDevolvida'),
+    ),
+    percentualSobreVendas: num(
+      pick(item, 'percentualSobreVendas', 'PercentualSobreVendas'),
+    ),
+    quantidadeRegistros: num(
+      pick(item, 'quantidadeRegistros', 'QuantidadeRegistros'),
     ),
   }
 }
@@ -199,6 +226,58 @@ export function normalizeParticipacaoMarcas(
 ): ParticipacaoMarcaDTO[] {
   if (!Array.isArray(items)) return []
   return items.map((item) => normalizeParticipacaoMarcaItem(item as Raw))
+}
+
+export function normalizeParticipacaoLojaItem(raw: Raw): ParticipacaoLojaDTO {
+  return {
+    lojaId: num(pick(raw, 'lojaId', 'LojaId')),
+    lojaNome: text(pick(raw, 'lojaNome', 'LojaNome')),
+    valorVenda: num(
+      pick(raw, 'valorVenda', 'ValorVenda', 'valor', 'Valor'),
+    ),
+    percentual: num(pick(raw, 'percentual', 'Percentual')),
+  }
+}
+
+export function normalizeParticipacaoLojas(
+  items: unknown,
+): ParticipacaoLojaDTO[] {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => normalizeParticipacaoLojaItem(item as Raw))
+    .filter((item) => item.lojaId > 0 || item.lojaNome.trim().length > 0)
+    .sort((a, b) => b.valorVenda - a.valorVenda)
+}
+
+export function normalizeVendasHorarioItem(raw: Raw): VendasHorarioDTO {
+  return {
+    hora: apiHour(pick(raw, 'hora', 'Hora')),
+    valorVenda: num(
+      pick(raw, 'valorVenda', 'ValorVenda', 'valor', 'Valor'),
+    ),
+    quantidadeVendida: num(
+      pick(raw, 'quantidadeVendida', 'QuantidadeVendida', 'quantidade', 'Quantidade'),
+    ),
+  }
+}
+
+export function normalizeVendasHorario(items: unknown): VendasHorarioDTO[] {
+  const rowsByHour = new Map<number, VendasHorarioDTO>()
+
+  if (Array.isArray(items)) {
+    items.forEach((item) => {
+      const row = normalizeVendasHorarioItem(item as Raw)
+      if (Number.isInteger(row.hora) && row.hora >= 0 && row.hora <= 23) {
+        rowsByHour.set(row.hora, row)
+      }
+    })
+  }
+
+  return Array.from({ length: 24 }, (_, hora) => ({
+    hora,
+    valorVenda: rowsByHour.get(hora)?.valorVenda ?? 0,
+    quantidadeVendida: rowsByHour.get(hora)?.quantidadeVendida ?? 0,
+  }))
 }
 
 export function normalizeRankingLojaItem(raw: Raw): RankingLojaDTO {

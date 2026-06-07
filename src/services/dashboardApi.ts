@@ -1,9 +1,11 @@
-import axios, { type AxiosError } from 'axios'
+import axios, { type AxiosError } from "axios";
 import type {
+  DashboardDevolucoesDTO,
   DashboardResumoDTO,
   FilterState,
   LojaDTO,
   MarcaDTO,
+  ParticipacaoLojaDTO,
   ParticipacaoMarcaDTO,
   TopMarcaDTO,
   TopMarcaLucroDTO,
@@ -11,13 +13,16 @@ import type {
   TopVendedorDTO,
   TopVendedorLucroDTO,
   VendaDiariaDTO,
+  VendasHorarioDTO,
   VendaMensalDTO,
   VendedorDTO,
-} from '@/types/dashboard'
+} from "@/types/dashboard";
 import {
+  normalizeDashboardDevolucoes,
   normalizeDashboardResumo,
   normalizeLojas,
   normalizeMarcas,
+  normalizeParticipacaoLojas,
   normalizeParticipacaoMarcas,
   normalizeTopMarcas,
   normalizeTopMarcasLucro,
@@ -25,40 +30,42 @@ import {
   normalizeTopVendedores,
   normalizeTopVendedoresLucro,
   normalizeVendasDiarias,
+  normalizeVendasHorario,
   normalizeVendasMensais,
   normalizeVendedores,
-} from '@/utils/normalize'
-import { httpClient } from '@/services/httpClient'
+} from "@/utils/normalize";
+import { httpClient } from "@/services/httpClient";
 
-const DASHBOARD_ANALYTICS_BASE = '/api/DashboardAnalytics'
-const DASHBOARD_PRODUTOS_BASE = '/api/DashboardProdutos'
+const DASHBOARD_ANALYTICS_BASE = "/api/DashboardAnalytics";
+const DASHBOARD_PRODUTOS_BASE = "/api/DashboardProdutos";
 
 export function buildQueryParams(filters: FilterState): Record<string, string> {
   const params: Record<string, string> = {
     empresaId: filters.empresaId,
     dataInicial: filters.dataInicial,
     dataFinal: filters.dataFinal,
-  }
-  if (filters.vendedorId != null) params.vendedorId = String(filters.vendedorId)
-  if (filters.lojaId != null) params.lojaId = String(filters.lojaId)
-  if (filters.marcaId != null) params.marcaId = String(filters.marcaId)
-  return params
+  };
+  if (filters.vendedorId != null)
+    params.vendedorId = String(filters.vendedorId);
+  if (filters.lojaId != null) params.lojaId = String(filters.lojaId);
+  if (filters.marcaId != null) params.marcaId = String(filters.marcaId);
+  return params;
 }
 
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const ax = error as AxiosError<{ message?: string; title?: string }>
-    const data = ax.response?.data
-    if (data?.message) return data.message
-    if (data?.title) return data.title
-    if (ax.response?.status === 404) return 'Endpoint não encontrado.'
-    if (ax.code === 'ERR_NETWORK') {
-      return 'Não foi possível conectar à API. Verifique se o backend está em execução.'
+    const ax = error as AxiosError<{ message?: string; title?: string }>;
+    const data = ax.response?.data;
+    if (data?.message) return data.message;
+    if (data?.title) return data.title;
+    if (ax.response?.status === 404) return "Endpoint não encontrado.";
+    if (ax.code === "ERR_NETWORK") {
+      return "Não foi possível conectar à API. Verifique se o backend está em execução.";
     }
-    return ax.message
+    return ax.message;
   }
-  if (error instanceof Error) return error.message
-  return 'Erro desconhecido ao buscar dados.'
+  if (error instanceof Error) return error.message;
+  return "Erro desconhecido ao buscar dados.";
 }
 
 async function fetchDashboard<T>(
@@ -69,16 +76,12 @@ async function fetchDashboard<T>(
   label: string,
 ): Promise<T> {
   try {
-    const { data } = await httpClient.get<unknown>(
-      `${baseUrl}/${endpoint}`,
-      { params: buildQueryParams(filters) },
-    )
-    return normalize(data)
+    const { data } = await httpClient.get<unknown>(`${baseUrl}/${endpoint}`, {
+      params: buildQueryParams(filters),
+    });
+    return normalize(data);
   } catch (error) {
-    throw new Error(
-      `${label}: ${getApiErrorMessage(error)}`,
-      { cause: error },
-    )
+    throw new Error(`${label}: ${getApiErrorMessage(error)}`, { cause: error });
   }
 }
 
@@ -87,11 +90,23 @@ export async function fetchResumo(
 ): Promise<DashboardResumoDTO> {
   return fetchDashboard(
     DASHBOARD_ANALYTICS_BASE,
-    'resumo',
+    "resumo",
     filters,
     normalizeDashboardResumo,
-    'Não foi possível carregar resumo',
-  )
+    "Não foi possível carregar resumo",
+  );
+}
+
+export async function fetchDashboardDevolucoes(
+  filters: FilterState,
+): Promise<DashboardDevolucoesDTO> {
+  return fetchDashboard(
+    DASHBOARD_ANALYTICS_BASE,
+    "top-vendedores-devolucao",
+    filters,
+    normalizeDashboardDevolucoes,
+    "Não foi possível carregar o resumo de devoluções",
+  );
 }
 
 export async function fetchVendasDiarias(
@@ -99,11 +114,11 @@ export async function fetchVendasDiarias(
 ): Promise<VendaDiariaDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'vendas-diarias',
+    "vendas-diarias",
     filters,
     normalizeVendasDiarias,
-    'Não foi possível carregar vendas diárias',
-  )
+    "Não foi possível carregar vendas diárias",
+  );
 }
 
 export async function fetchVendasMensais(
@@ -111,11 +126,11 @@ export async function fetchVendasMensais(
 ): Promise<VendaMensalDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'vendas-mensais',
+    "vendas-mensais",
     filters,
     normalizeVendasMensais,
-    'Não foi possível carregar vendas mensais',
-  )
+    "Não foi possível carregar vendas mensais",
+  );
 }
 
 export async function fetchTopVendedores(
@@ -123,11 +138,11 @@ export async function fetchTopVendedores(
 ): Promise<TopVendedorDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'top-vendedores',
+    "top-vendedores",
     filters,
     normalizeTopVendedores,
-    'Não foi possível carregar top vendedores',
-  )
+    "Não foi possível carregar top vendedores",
+  );
 }
 
 export async function fetchTopVendedoresLucro(
@@ -135,11 +150,11 @@ export async function fetchTopVendedoresLucro(
 ): Promise<TopVendedorLucroDTO[]> {
   return fetchDashboard(
     DASHBOARD_ANALYTICS_BASE,
-    'top-vendedores-lucro',
+    "top-vendedores-lucro",
     filters,
     normalizeTopVendedoresLucro,
-    'Não foi possível carregar lucro por vendedor',
-  )
+    "Não foi possível carregar lucro por vendedor",
+  );
 }
 
 export async function fetchTopVendedoresDesconto(
@@ -147,11 +162,11 @@ export async function fetchTopVendedoresDesconto(
 ): Promise<TopVendedorDescontoDTO[]> {
   return fetchDashboard(
     DASHBOARD_ANALYTICS_BASE,
-    'top-vendedores-desconto',
+    "top-vendedores-desconto",
     filters,
     normalizeTopVendedoresDesconto,
-    'Não foi possível carregar descontos por vendedor',
-  )
+    "Não foi possível carregar descontos por vendedor",
+  );
 }
 
 export async function fetchTopMarcas(
@@ -159,11 +174,11 @@ export async function fetchTopMarcas(
 ): Promise<TopMarcaDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'top-marcas',
+    "top-marcas",
     filters,
     normalizeTopMarcas,
-    'Não foi possível carregar top marcas',
-  )
+    "Não foi possível carregar top marcas",
+  );
 }
 
 export async function fetchTopMarcasLucro(
@@ -171,11 +186,11 @@ export async function fetchTopMarcasLucro(
 ): Promise<TopMarcaLucroDTO[]> {
   return fetchDashboard(
     DASHBOARD_ANALYTICS_BASE,
-    'top-marcas-lucro',
+    "top-marcas-lucro",
     filters,
     normalizeTopMarcasLucro,
-    'Não foi possível carregar lucro por marca',
-  )
+    "Não foi possível carregar lucro por marca",
+  );
 }
 
 export async function fetchParticipacaoMarcas(
@@ -183,21 +198,45 @@ export async function fetchParticipacaoMarcas(
 ): Promise<ParticipacaoMarcaDTO[]> {
   return fetchDashboard(
     DASHBOARD_ANALYTICS_BASE,
-    'participacao-marcas',
+    "participacao-marcas",
     filters,
     normalizeParticipacaoMarcas,
-    'Não foi possível carregar participação das marcas',
-  )
+    "Não foi possível carregar participação das marcas",
+  );
+}
+
+export async function fetchParticipacaoLojas(
+  filters: FilterState,
+): Promise<ParticipacaoLojaDTO[]> {
+  return fetchDashboard(
+    DASHBOARD_ANALYTICS_BASE,
+    "participacao-lojas",
+    filters,
+    normalizeParticipacaoLojas,
+    "Não foi possível carregar participação das lojas",
+  );
+}
+
+export async function fetchVendasHorario(
+  filters: FilterState,
+): Promise<VendasHorarioDTO[]> {
+  return fetchDashboard(
+    DASHBOARD_ANALYTICS_BASE,
+    "vendas-horario",
+    filters,
+    normalizeVendasHorario,
+    "Não foi possível carregar vendas por horário",
+  );
 }
 
 export async function fetchLojas(filters: FilterState): Promise<LojaDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'lojas',
+    "lojas",
     filters,
     normalizeLojas,
-    'Não foi possível carregar lojas',
-  )
+    "Não foi possível carregar lojas",
+  );
 }
 
 export async function fetchVendedores(
@@ -205,19 +244,19 @@ export async function fetchVendedores(
 ): Promise<VendedorDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'vendedores',
+    "vendedores",
     filters,
     normalizeVendedores,
-    'Não foi possível carregar vendedores',
-  )
+    "Não foi possível carregar vendedores",
+  );
 }
 
 export async function fetchMarcas(filters: FilterState): Promise<MarcaDTO[]> {
   return fetchDashboard(
     DASHBOARD_PRODUTOS_BASE,
-    'marcas',
+    "marcas",
     filters,
     normalizeMarcas,
-    'Não foi possível carregar marcas',
-  )
+    "Não foi possível carregar marcas",
+  );
 }

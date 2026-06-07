@@ -20,10 +20,14 @@ import { TopBrandProfitChart } from '@/charts/TopBrandProfitChart'
 import { SellerProfitRankingChart } from '@/charts/SellerProfitRankingChart'
 import { BrandParticipationChart } from '@/charts/BrandParticipationChart'
 import { TopSellersDiscountChart } from '@/charts/TopSellersDiscountChart'
+import { StoreParticipationChart } from '@/charts/StoreParticipationChart'
+import { HourlySalesChart } from '@/charts/HourlySalesChart'
+import { ReturnsSummaryCard } from '@/charts/ReturnsSummaryCard'
 
 export function DashboardPage() {
   const {
     resumo,
+    devolucoesResumo,
     goalResumo,
     vendasDiarias,
     vendasMensais,
@@ -33,10 +37,13 @@ export function DashboardPage() {
     topMarcas,
     topMarcasLucro,
     participacaoMarcas,
+    participacaoLojas,
+    vendasHorario,
     loading,
     initialLoading,
     refreshing,
     error,
+    devolucoesError,
     lojas,
     vendedores,
     marcas,
@@ -134,6 +141,9 @@ export function DashboardPage() {
           />
           <TopSellersChart topVendedores={topVendedores} loading={showLoading} />
           <TopBrandsChart topMarcas={topMarcas} loading={showLoading} />
+        </div>
+
+        <div className="grid items-stretch gap-6 lg:grid-cols-2">
           <TopBrandProfitChart
             topMarcasLucro={topMarcasLucro}
             loading={showLoading}
@@ -146,13 +156,30 @@ export function DashboardPage() {
             topVendedoresDesconto={topVendedoresDesconto}
             loading={showLoading}
           />
-          <div className="lg:col-span-2">
-            <BrandParticipationChart
-              participacaoMarcas={participacaoMarcas}
-              marcas={marcas}
-              loading={showLoading}
-            />
-          </div>
+          <ReturnsSummaryCard
+            devolucoesResumo={devolucoesResumo}
+            loading={showLoading}
+            error={devolucoesError}
+          />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-2">
+          <StoreParticipationChart
+            participacaoLojas={participacaoLojas}
+            loading={showLoading}
+          />
+          <BrandParticipationChart
+            participacaoMarcas={participacaoMarcas}
+            marcas={marcas}
+            loading={showLoading}
+          />
+        </div>
+
+        <div>
+          <HourlySalesChart
+            vendasHorario={vendasHorario}
+            loading={showLoading}
+          />
         </div>
       </main>
     </div>
