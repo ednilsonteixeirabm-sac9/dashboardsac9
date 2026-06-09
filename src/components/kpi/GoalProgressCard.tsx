@@ -35,7 +35,7 @@ export function GoalProgressCard({ resumo, loading }: Props) {
     )
   }
 
-  const realizado = resumo?.totalVendas ?? 0
+  const realizado = resumo?.vendaMesAtual ?? 0
   const percentual = META_MENSAL_DASHBOARD > 0
     ? (realizado / META_MENSAL_DASHBOARD) * 100
     : 0
@@ -46,12 +46,12 @@ export function GoalProgressCard({ resumo, loading }: Props) {
       <CardHeader className="border-b border-border px-5 py-4 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Painel executivo
-            </p>
             <CardTitle className="mt-1 text-lg font-semibold tracking-tight">
               Meta x Realizado
             </CardTitle>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Painel executivo
+            </p>
           </div>
           <span className="rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-sm font-semibold text-primary">
             {formatNumber(percentual, 2)}% atingido

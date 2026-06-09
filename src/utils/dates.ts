@@ -5,12 +5,13 @@ import {
   startOfDay,
   endOfDay,
   startOfWeek,
-  endOfWeek,
   startOfMonth,
   endOfMonth,
   startOfYear,
+  endOfYear,
   subDays,
   subMonths,
+  subYears,
   parseISO,
   startOfMonth as monthStart,
   endOfMonth as monthEnd,
@@ -64,48 +65,97 @@ export function formatMonthLabel(yearMonth: string): string {
   }
 }
 
+export type PeriodRange = {
+  dataInicial: string
+  dataFinal: string
+}
+
+export type PeriodShortcutId =
+  | 'hoje'
+  | 'ontem'
+  | 'ultimos7Dias'
+  | 'estaSemana'
+  | 'esteMes'
+  | 'mesAnterior'
+  | 'ultimos30Dias'
+  | 'esteAno'
+  | 'anoAnterior'
+  | 'ultimos12Meses'
+
+export function getPeriodShortcutRange(
+  shortcut: PeriodShortcutId,
+  today = new Date(),
+): PeriodRange {
+  const end = today
+
+  switch (shortcut) {
+    case 'hoje': {
+      const s = toApiDate(end)
+      return { dataInicial: s, dataFinal: s }
+    }
+    case 'ontem': {
+      const d = subDays(end, 1)
+      const s = toApiDate(d)
+      return { dataInicial: s, dataFinal: s }
+    }
+    case 'ultimos7Dias':
+      return {
+        dataInicial: toApiDate(subDays(end, 6)),
+        dataFinal: toApiDate(end),
+      }
+    case 'estaSemana':
+      return {
+        dataInicial: toApiDate(startOfWeek(end, { weekStartsOn: 1 })),
+        dataFinal: toApiDate(end),
+      }
+    case 'esteMes':
+      return {
+        dataInicial: toApiDate(startOfMonth(end)),
+        dataFinal: toApiDate(end),
+      }
+    case 'mesAnterior': {
+      const previousMonth = subMonths(end, 1)
+      return {
+        dataInicial: toApiDate(startOfMonth(previousMonth)),
+        dataFinal: toApiDate(endOfMonth(previousMonth)),
+      }
+    }
+    case 'ultimos30Dias':
+      return {
+        dataInicial: toApiDate(subDays(end, 29)),
+        dataFinal: toApiDate(end),
+      }
+    case 'esteAno':
+      return {
+        dataInicial: toApiDate(startOfYear(end)),
+        dataFinal: toApiDate(end),
+      }
+    case 'anoAnterior': {
+      const previousYear = subYears(end, 1)
+      return {
+        dataInicial: toApiDate(startOfYear(previousYear)),
+        dataFinal: toApiDate(endOfYear(previousYear)),
+      }
+    }
+    case 'ultimos12Meses':
+      return {
+        dataInicial: toApiDate(subMonths(end, 12)),
+        dataFinal: toApiDate(end),
+      }
+  }
+}
+
 export const periodShortcuts = {
-  hoje: () => {
-    const d = new Date()
-    const s = toApiDate(d)
-    return { dataInicial: s, dataFinal: s }
-  },
-  ontem: () => {
-    const d = subDays(new Date(), 1)
-    const s = toApiDate(d)
-    return { dataInicial: s, dataFinal: s }
-  },
-  estaSemana: () => {
-    const now = new Date()
-    return {
-      dataInicial: toApiDate(startOfWeek(now, { weekStartsOn: 1 })),
-      dataFinal: toApiDate(endOfWeek(now, { weekStartsOn: 1 })),
-    }
-  },
-  esteMes: () => {
-    const now = new Date()
-    return {
-      dataInicial: toApiDate(startOfMonth(now)),
-      dataFinal: toApiDate(endOfMonth(now)),
-    }
-  },
-  ultimos30Dias: () => {
-    const end = new Date()
-    const start = subDays(end, 29)
-    return { dataInicial: toApiDate(start), dataFinal: toApiDate(end) }
-  },
-  esteAno: () => {
-    const end = new Date()
-    return {
-      dataInicial: toApiDate(startOfYear(end)),
-      dataFinal: toApiDate(end),
-    }
-  },
-  ultimos12Meses: () => {
-    const end = new Date()
-    const start = subMonths(end, 12)
-    return { dataInicial: toApiDate(start), dataFinal: toApiDate(end) }
-  },
+  hoje: () => getPeriodShortcutRange('hoje'),
+  ontem: () => getPeriodShortcutRange('ontem'),
+  ultimos7Dias: () => getPeriodShortcutRange('ultimos7Dias'),
+  estaSemana: () => getPeriodShortcutRange('estaSemana'),
+  esteMes: () => getPeriodShortcutRange('esteMes'),
+  mesAnterior: () => getPeriodShortcutRange('mesAnterior'),
+  ultimos30Dias: () => getPeriodShortcutRange('ultimos30Dias'),
+  esteAno: () => getPeriodShortcutRange('esteAno'),
+  anoAnterior: () => getPeriodShortcutRange('anoAnterior'),
+  ultimos12Meses: () => getPeriodShortcutRange('ultimos12Meses'),
 } as const
 
 export function monthKeyFromAnoMes(ano: number, mes: number): string {

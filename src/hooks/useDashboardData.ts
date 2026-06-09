@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { format, startOfMonth } from 'date-fns'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type DashboardCacheEntry,
   dashboardQueryKey,
   deleteDashboardCache,
   getDashboardCache,
   setDashboardCache,
-} from '@/cache/dashboardDataCache'
-import { useAuthStore } from '@/store/authStore'
-import { useFilterStore } from '@/store/filterStore'
+} from "@/cache/dashboardDataCache";
+import { useAuthStore } from "@/store/authStore";
+import { useFilterStore } from "@/store/filterStore";
 import {
   fetchDashboardDevolucoes,
   fetchLojas,
@@ -26,8 +25,9 @@ import {
   fetchVendasMensais,
   fetchVendedores,
   getApiErrorMessage,
-} from '@/services/dashboardApi'
-import type { FilterState } from '@/types/dashboard'
+} from "@/services/dashboardApi";
+import type { FilterState } from "@/types/dashboard";
+import { getPeriodShortcutRange } from "@/utils/dates";
 import type {
   DashboardDevolucoesDTO,
   DashboardResumoDTO,
@@ -45,41 +45,68 @@ import type {
   VendasHorarioDTO,
   VendaMensalDTO,
   VendedorDTO,
-} from '@/types/dashboard'
+} from "@/types/dashboard";
 
 function lojasToOptions(items: LojaDTO[]): SelectOption[] {
-  return items.map((item) => ({ id: item.lojaId, label: item.lojaNome }))
+  return items.map((item) => ({ id: item.lojaId, label: item.lojaNome }));
 }
 
 function vendedoresToOptions(items: VendedorDTO[]): SelectOption[] {
   return items.map((item) => ({
     id: item.vendedorId,
     label: item.vendedorNome,
-  }))
+  }));
 }
 
 function marcasToOptions(items: MarcaDTO[]): SelectOption[] {
-  return items.map((item) => ({ id: item.marcaId, label: item.marcaNome }))
+  return items.map((item) => ({ id: item.marcaId, label: item.marcaNome }));
 }
 
 const emptyResumo: DashboardResumoDTO = {
   totalVendas: 0,
-  lucroTotal: 0,
+  totalVendasAnterior: 0,
+  variacaoVendas: 0,
   ticketMedio: 0,
-  quantidadeVendida: 0,
+  ticketMedioAnterior: 0,
+  variacaoTicketMedio: 0,
+  lucroTotal: 0,
+  lucroTotalAnterior: 0,
+  variacaoLucro: 0,
   margemLucro: 0,
-  projecaoMes: 0,
+  margemLucroAnterior: 0,
+  variacaoMargemLucro: 0,
   totalDesconto: 0,
-  valorDevolvido: 0,
-  percentualDevolucao: 0,
-}
+  totalDescontoAnterior: 0,
+  variacaoDesconto: 0,
+  quantidadeVendida: 0,
+  quantidadeVendidaAnterior: 0,
+  variacaoQuantidadeVendida: 0,
+  projecaoMes: 0,
+  lucroMesAtual: 0,
+  lucroMesAnoAnterior: 0,
+  variacaoLucroMesAnoAnterior: 0,
+  quantidadeVendasPeriodo: 0,
+  quantidadeVendasPeriodoAnterior: 0,
+  variacaoQuantidadeVendas: 0,
+  pecasPorVenda: 0,
+  pecasPorVendaAnterior: 0,
+  variacaoPecasPorVenda: 0,
+  vendaMesmoPeriodoAnoAnterior: 0,
+  variacaoMesmoPeriodoAnoAnterior: 0,
+  variacaoMesAnoAnterior: 0,
+  vendaMesAnoAnterior: 0,
+  variacaoProjecaoVsAnoAnterior: 0,
+  vendaMesAnoAnteriorCompleto: 0,
+  vendaMesAtual: 0,
+  vendaHoje: 0,
+};
 
 const emptyDevolucoesResumo: DashboardDevolucoesDTO = {
   valorDevolvido: 0,
   quantidadeDevolvida: 0,
   percentualSobreVendas: 0,
   quantidadeRegistros: 0,
-}
+};
 
 const emptyEntry: DashboardCacheEntry = {
   resumo: emptyResumo,
@@ -97,55 +124,55 @@ const emptyEntry: DashboardCacheEntry = {
   lojas: [],
   vendedores: [],
   marcas: [],
-}
+};
 
-const DASHBOARD_REFETCH_DEBOUNCE_MS = 400
+const DASHBOARD_REFETCH_DEBOUNCE_MS = 400;
 
 function currentMonthGoalPayload(empresaId: string): FilterState {
-  const today = new Date()
+  const { dataInicial, dataFinal } = getPeriodShortcutRange("esteMes");
   return {
     empresaId,
-    dataInicial: format(startOfMonth(today), 'yyyy-MM-dd'),
-    dataFinal: format(today, 'yyyy-MM-dd'),
-  }
+    dataInicial,
+    dataFinal,
+  };
 }
 
 export function useDashboardData() {
-  const empresaId = useAuthStore((s) => s.empresaId)
-  const filters = useFilterStore()
-  const periodTick = useFilterStore((s) => s.periodTick)
-  const [state, setState] = useState<DashboardCacheEntry>(emptyEntry)
-  const [goalResumo, setGoalResumo] = useState<DashboardResumoDTO>(emptyResumo)
-  const [loading, setLoading] = useState(false)
-  const [goalLoading, setGoalLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [devolucoesError, setDevolucoesError] = useState<string | null>(null)
-  const [goalError, setGoalError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-  const goalAbortRef = useRef<AbortController | null>(null)
-  const hasLoadedRef = useRef(false)
-  const hasLoadedGoalRef = useRef(false)
-  const [hasLoaded, setHasLoaded] = useState(false)
-  const [hasLoadedGoal, setHasLoadedGoal] = useState(false)
-  const stateRef = useRef<DashboardCacheEntry>(emptyEntry)
+  const empresaId = useAuthStore((s) => s.empresaId);
+  const filters = useFilterStore();
+  const periodTick = useFilterStore((s) => s.periodTick);
+  const [state, setState] = useState<DashboardCacheEntry>(emptyEntry);
+  const [goalResumo, setGoalResumo] = useState<DashboardResumoDTO>(emptyResumo);
+  const [loading, setLoading] = useState(false);
+  const [goalLoading, setGoalLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [devolucoesError, setDevolucoesError] = useState<string | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const goalAbortRef = useRef<AbortController | null>(null);
+  const hasLoadedRef = useRef(false);
+  const hasLoadedGoalRef = useRef(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasLoadedGoal, setHasLoadedGoal] = useState(false);
+  const stateRef = useRef<DashboardCacheEntry>(emptyEntry);
 
   const setDashboardState = useCallback((entry: DashboardCacheEntry) => {
-    stateRef.current = entry
-    setState(entry)
-  }, [])
+    stateRef.current = entry;
+    setState(entry);
+  }, []);
 
   const load = useCallback(async () => {
     if (!empresaId.trim()) {
-      setDashboardState(emptyEntry)
-      setError(null)
-      setDevolucoesError(null)
-      setLoading(false)
-      hasLoadedRef.current = false
-      setHasLoaded(false)
-      return
+      setDashboardState(emptyEntry);
+      setError(null);
+      setDevolucoesError(null);
+      setLoading(false);
+      hasLoadedRef.current = false;
+      setHasLoaded(false);
+      return;
     }
 
-    void periodTick
+    void periodTick;
 
     const filterPayload: FilterState = {
       empresaId,
@@ -154,26 +181,26 @@ export function useDashboardData() {
       vendedorId: filters.vendedorId,
       lojaId: filters.lojaId,
       marcaId: filters.marcaId,
-    }
+    };
 
-    const key = dashboardQueryKey(filterPayload)
-    const cached = getDashboardCache(key)
+    const key = dashboardQueryKey(filterPayload);
+    const cached = getDashboardCache(key);
     if (cached) {
-      setDashboardState(cached)
-      setError(null)
-      setDevolucoesError(null)
-      setLoading(false)
-      hasLoadedRef.current = true
-      setHasLoaded(true)
-      return
+      setDashboardState(cached);
+      setError(null);
+      setDevolucoesError(null);
+      setLoading(false);
+      hasLoadedRef.current = true;
+      setHasLoaded(true);
+      return;
     }
 
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       const results = await Promise.allSettled([
@@ -192,53 +219,55 @@ export function useDashboardData() {
         fetchParticipacaoLojas(filterPayload),
         fetchVendasHorario(filterPayload),
         fetchDashboardDevolucoes(filterPayload),
-      ])
+      ]);
 
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted) return;
 
       const labels = [
-        'resumo',
-        'vendas diárias',
-        'vendas mensais',
-        'top vendedores',
-        'lucro por vendedor',
-        'descontos por vendedor',
-        'top marcas',
-        'lucro por marca',
-        'participação das marcas',
-        'lojas',
-        'vendedores',
-        'marcas',
-        'participação das lojas',
-        'vendas por horário',
-        'resumo de devoluções',
-      ]
+        "resumo",
+        "vendas diárias",
+        "vendas mensais",
+        "top vendedores",
+        "lucro por vendedor",
+        "descontos por vendedor",
+        "top marcas",
+        "lucro por marca",
+        "participação das marcas",
+        "lojas",
+        "vendedores",
+        "marcas",
+        "participação das lojas",
+        "vendas por horário",
+        "resumo de devoluções",
+      ];
       const failures = results
         .map((result, index) => ({ result, index }))
         .filter(
           (entry): entry is { result: PromiseRejectedResult; index: number } =>
-            entry.result.status === 'rejected',
-        )
+            entry.result.status === "rejected",
+        );
       const globalMessages = failures
         .filter(({ index }) => index !== 14)
         .map(({ result, index }) => {
-          const reason = result.reason
+          const reason = result.reason;
           const detail =
-            reason instanceof Error ? reason.message : getApiErrorMessage(reason)
-          return `${labels[index]} (${detail})`
-        })
+            reason instanceof Error
+              ? reason.message
+              : getApiErrorMessage(reason);
+          return `${labels[index]} (${detail})`;
+        });
 
       if (failures.length > 0) {
-        const criticalFailures = failures.filter(({ index }) => index < 12)
+        const criticalFailures = failures.filter(({ index }) => index < 12);
         if (criticalFailures.length > 0) {
-          if (!hasLoadedRef.current) setDashboardState(emptyEntry)
-          setError(globalMessages.join(' · '))
+          if (!hasLoadedRef.current) setDashboardState(emptyEntry);
+          setError(globalMessages.join(" · "));
           setDevolucoesError(
             failures.some(({ index }) => index === 14)
-              ? 'Não foi possível carregar o resumo de devoluções.'
+              ? "Não foi possível carregar o resumo de devoluções."
               : null,
-          )
-          return
+          );
+          return;
         }
       }
 
@@ -258,16 +287,16 @@ export function useDashboardData() {
         participacaoLojasResult,
         vendasHorarioResult,
         devolucoesResumoResult,
-      ] = results.map((r) => (r as PromiseFulfilledResult<unknown>).value)
+      ] = results.map((r) => (r as PromiseFulfilledResult<unknown>).value);
 
       const participacaoLojas =
-        results[12].status === 'fulfilled' ? participacaoLojasResult : []
+        results[12].status === "fulfilled" ? participacaoLojasResult : [];
       const vendasHorario =
-        results[13].status === 'fulfilled' ? vendasHorarioResult : []
+        results[13].status === "fulfilled" ? vendasHorarioResult : [];
       const devolucoesResumo =
-        results[14].status === 'fulfilled'
+        results[14].status === "fulfilled"
           ? devolucoesResumoResult
-          : stateRef.current.devolucoesResumo
+          : stateRef.current.devolucoesResumo;
 
       const entry: DashboardCacheEntry = {
         resumo: resumo as DashboardResumoDTO,
@@ -286,24 +315,24 @@ export function useDashboardData() {
         lojas: lojasToOptions(lojasRaw as LojaDTO[]),
         vendedores: vendedoresToOptions(vendedoresRaw as VendedorDTO[]),
         marcas: marcasToOptions(marcasRaw as MarcaDTO[]),
-      }
+      };
 
-      if (failures.length === 0) setDashboardCache(key, entry)
-      setDashboardState(entry)
-      setError(globalMessages.length > 0 ? globalMessages.join(' · ') : null)
+      if (failures.length === 0) setDashboardCache(key, entry);
+      setDashboardState(entry);
+      setError(globalMessages.length > 0 ? globalMessages.join(" · ") : null);
       setDevolucoesError(
         failures.some(({ index }) => index === 14)
-          ? 'Não foi possível carregar o resumo de devoluções.'
+          ? "Não foi possível carregar o resumo de devoluções."
           : null,
-      )
-      hasLoadedRef.current = true
-      setHasLoaded(true)
+      );
+      hasLoadedRef.current = true;
+      setHasLoaded(true);
     } catch (err) {
-      if (controller.signal.aborted) return
-      if (!hasLoadedRef.current) setDashboardState(emptyEntry)
-      setError(getApiErrorMessage(err))
+      if (controller.signal.aborted) return;
+      if (!hasLoadedRef.current) setDashboardState(emptyEntry);
+      setError(getApiErrorMessage(err));
     } finally {
-      if (!controller.signal.aborted) setLoading(false)
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [
     empresaId,
@@ -314,63 +343,65 @@ export function useDashboardData() {
     filters.marcaId,
     periodTick,
     setDashboardState,
-  ])
+  ]);
 
   const loadGoalResumo = useCallback(async () => {
     if (!empresaId.trim()) {
-      setGoalResumo(emptyResumo)
-      setGoalError(null)
-      setGoalLoading(false)
-      hasLoadedGoalRef.current = false
-      setHasLoadedGoal(false)
-      return
+      setGoalResumo(emptyResumo);
+      setGoalError(null);
+      setGoalLoading(false);
+      hasLoadedGoalRef.current = false;
+      setHasLoadedGoal(false);
+      return;
     }
 
-    goalAbortRef.current?.abort()
-    const controller = new AbortController()
-    goalAbortRef.current = controller
+    goalAbortRef.current?.abort();
+    const controller = new AbortController();
+    goalAbortRef.current = controller;
 
-    setGoalLoading(true)
-    setGoalError(null)
+    setGoalLoading(true);
+    setGoalError(null);
 
     try {
-      const resumoMensal = await fetchResumo(currentMonthGoalPayload(empresaId))
-      if (controller.signal.aborted) return
-      setGoalResumo(resumoMensal)
-      hasLoadedGoalRef.current = true
-      setHasLoadedGoal(true)
+      const resumoMensal = await fetchResumo(
+        currentMonthGoalPayload(empresaId),
+      );
+      if (controller.signal.aborted) return;
+      setGoalResumo(resumoMensal);
+      hasLoadedGoalRef.current = true;
+      setHasLoadedGoal(true);
     } catch (err) {
-      if (controller.signal.aborted) return
-      if (!hasLoadedGoalRef.current) setGoalResumo(emptyResumo)
-      setGoalError(getApiErrorMessage(err))
+      if (controller.signal.aborted) return;
+      if (!hasLoadedGoalRef.current) setGoalResumo(emptyResumo);
+      setGoalError(getApiErrorMessage(err));
     } finally {
-      if (!controller.signal.aborted) setGoalLoading(false)
+      if (!controller.signal.aborted) setGoalLoading(false);
     }
-  }, [empresaId])
+  }, [empresaId]);
 
   useEffect(() => {
-    const delay = hasLoadedRef.current ? DASHBOARD_REFETCH_DEBOUNCE_MS : 0
+    const delay = hasLoadedRef.current ? DASHBOARD_REFETCH_DEBOUNCE_MS : 0;
     const timeoutId = window.setTimeout(() => {
-      void load()
-    }, delay)
+      void load();
+    }, delay);
     return () => {
-      window.clearTimeout(timeoutId)
-      abortRef.current?.abort()
-    }
-  }, [load])
+      window.clearTimeout(timeoutId);
+      abortRef.current?.abort();
+    };
+  }, [load]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadGoalResumo()
-    }, 0)
+      void loadGoalResumo();
+    }, 0);
     return () => {
-      window.clearTimeout(timeoutId)
-      goalAbortRef.current?.abort()
-    }
-  }, [loadGoalResumo])
+      window.clearTimeout(timeoutId);
+      goalAbortRef.current?.abort();
+    };
+  }, [loadGoalResumo]);
 
   const refetch = useCallback(() => {
-    const currentFilters = useFilterStore.getState()
+    const currentFilters = useFilterStore.getState();
     const filterPayload: FilterState = {
       empresaId: useAuthStore.getState().empresaId,
       dataInicial: currentFilters.dataInicial,
@@ -378,16 +409,16 @@ export function useDashboardData() {
       vendedorId: currentFilters.vendedorId,
       lojaId: currentFilters.lojaId,
       marcaId: currentFilters.marcaId,
-    }
-    deleteDashboardCache(dashboardQueryKey(filterPayload))
-    void load()
-    void loadGoalResumo()
-  }, [load, loadGoalResumo])
+    };
+    deleteDashboardCache(dashboardQueryKey(filterPayload));
+    void load();
+    void loadGoalResumo();
+  }, [load, loadGoalResumo]);
 
   const combinedError = useMemo(
-    () => [error, goalError].filter(Boolean).join(' · ') || null,
+    () => [error, goalError].filter(Boolean).join(" · ") || null,
     [error, goalError],
-  )
+  );
 
   const hasData = useMemo(
     () =>
@@ -396,12 +427,21 @@ export function useDashboardData() {
       state.participacaoLojas.length > 0 ||
       state.vendasHorario.some((item) => item.valorVenda > 0) ||
       state.resumo.totalVendas > 0 ||
+      state.resumo.ticketMedio > 0 ||
+      state.resumo.lucroTotal > 0 ||
       state.resumo.totalDesconto > 0 ||
       state.resumo.quantidadeVendida > 0 ||
+      state.resumo.projecaoMes > 0 ||
+      state.resumo.quantidadeVendasPeriodo > 0 ||
+      state.resumo.pecasPorVenda > 0 ||
+      state.resumo.vendaMesmoPeriodoAnoAnterior > 0 ||
+      state.resumo.vendaMesAnoAnterior > 0 ||
+      state.resumo.vendaMesAtual > 0 ||
+      state.resumo.vendaHoje > 0 ||
       state.devolucoesResumo.valorDevolvido > 0 ||
       state.devolucoesResumo.quantidadeRegistros > 0,
     [state],
-  )
+  );
 
   return {
     resumo: state.resumo,
@@ -431,5 +471,5 @@ export function useDashboardData() {
     refetch,
     hasEmpresa: Boolean(empresaId.trim()),
     hasData,
-  }
+  };
 }

@@ -62,10 +62,7 @@ export function DashboardPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-8 lg:px-8">
-        <GoalProgressCard
-          resumo={hasEmpresa ? goalResumo : null}
-          loading={showGoalLoading}
-        />
+        
 
         <Card className="overflow-hidden rounded-2xl border-border bg-card shadow-[var(--card-elevated-shadow)]">
           <CardHeader className="border-b border-border px-5 py-4 sm:px-6">
@@ -104,7 +101,6 @@ export function DashboardPage() {
             />
           </CardContent>
         </Card>
-
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -126,6 +122,11 @@ export function DashboardPage() {
         )}
 
         <KpiCards resumo={hasEmpresa ? resumo : null} loading={showLoading} />
+
+        <GoalProgressCard
+          resumo={hasEmpresa ? goalResumo : null}
+          loading={showGoalLoading}
+        />
 
         {hasEmpresa && !showLoading && !hasData && !error && (
           <p className="text-center text-sm text-muted-foreground">

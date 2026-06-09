@@ -1,14 +1,9 @@
 import { create } from 'zustand'
-import { subDays, format } from 'date-fns'
 import { clearDashboardCache } from '@/cache/dashboardDataCache'
+import { getPeriodShortcutRange } from '@/utils/dates'
 
 function defaultDates() {
-  const end = new Date()
-  const start = subDays(end, 29)
-  return {
-    dataInicial: format(start, 'yyyy-MM-dd'),
-    dataFinal: format(end, 'yyyy-MM-dd'),
-  }
+  return getPeriodShortcutRange('ultimos30Dias')
 }
 
 export type DateFilterState = {

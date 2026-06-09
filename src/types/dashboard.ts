@@ -38,14 +38,41 @@ export type VendaMensalDTO = {
 
 export type DashboardResumoDTO = {
   totalVendas: number;
-  lucroTotal: number;
+  totalVendasAnterior: number;
+  variacaoVendas: number;
   ticketMedio: number;
-  quantidadeVendida: number;
+  ticketMedioAnterior: number;
+  variacaoTicketMedio: number;
+  lucroTotal: number;
+  lucroTotalAnterior: number;
+  variacaoLucro: number;
   margemLucro: number;
-  projecaoMes: number;
+  margemLucroAnterior: number;
+  variacaoMargemLucro: number;
   totalDesconto: number;
-  valorDevolvido: number;
-  percentualDevolucao: number;
+  totalDescontoAnterior: number;
+  variacaoDesconto: number;
+  quantidadeVendida: number;
+  quantidadeVendidaAnterior: number;
+  variacaoQuantidadeVendida: number;
+  projecaoMes: number;
+  quantidadeVendasPeriodo: number;
+  quantidadeVendasPeriodoAnterior: number;
+  variacaoQuantidadeVendas: number;
+  pecasPorVenda: number;
+  pecasPorVendaAnterior: number;
+  lucroMesAtual: number;
+  lucroMesAnoAnterior: number;
+  variacaoLucroMesAnoAnterior: number;
+  variacaoPecasPorVenda: number;
+  vendaMesmoPeriodoAnoAnterior: number;
+  variacaoMesmoPeriodoAnoAnterior: number;
+  vendaMesAnoAnterior: number;
+  variacaoMesAnoAnterior: number;
+  variacaoProjecaoVsAnoAnterior: number;
+  vendaMesAnoAnteriorCompleto: number;
+  vendaMesAtual: number;
+  vendaHoje: number;
 };
 
 export type DashboardDevolucoesDTO = {

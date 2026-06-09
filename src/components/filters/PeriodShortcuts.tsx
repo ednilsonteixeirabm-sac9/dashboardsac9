@@ -1,17 +1,26 @@
 import { Button } from '@/components/ui/button'
 import { useFilterStore } from '@/store/filterStore'
-import { periodShortcuts } from '@/utils/dates'
+import {
+  getPeriodShortcutRange,
+  type PeriodShortcutId,
+} from '@/utils/dates'
 import { cn } from '@/lib/utils'
 
 const shortcuts = [
-  { id: 'hoje', label: 'Hoje', fn: periodShortcuts.hoje },
-  { id: 'ontem', label: 'Ontem', fn: periodShortcuts.ontem },
-  { id: 'semana', label: 'Esta Semana', fn: periodShortcuts.estaSemana },
-  { id: 'mes', label: 'Este Mês', fn: periodShortcuts.esteMes },
-  { id: '30d', label: 'Últimos 30 Dias', fn: periodShortcuts.ultimos30Dias },
-  { id: 'ano', label: 'Este Ano', fn: periodShortcuts.esteAno },
-  { id: '12m', label: 'Últimos 12 Meses', fn: periodShortcuts.ultimos12Meses },
-] as const
+  { id: 'hoje', label: 'Hoje' },
+  { id: 'ontem', label: 'Ontem' },
+  { id: 'ultimos7Dias', label: 'Últimos 7 Dias' },
+  { id: 'estaSemana', label: 'Esta Semana' },
+  { id: 'esteMes', label: 'Este Mês' },
+  { id: 'mesAnterior', label: 'Mês Anterior' },
+  { id: 'ultimos30Dias', label: 'Últimos 30 Dias' },
+  { id: 'esteAno', label: 'Este Ano' },
+  { id: 'anoAnterior', label: 'Ano Anterior' },
+  { id: 'ultimos12Meses', label: 'Últimos 12 Meses' },
+] as const satisfies ReadonlyArray<{
+  id: PeriodShortcutId
+  label: string
+}>
 
 export function PeriodShortcuts() {
   const setPeriod = useFilterStore((s) => s.setPeriod)
@@ -21,7 +30,7 @@ export function PeriodShortcuts() {
   return (
     <div className="flex max-w-full flex-wrap gap-2">
       {shortcuts.map((s) => {
-        const shortcutPeriod = s.fn()
+        const shortcutPeriod = getPeriodShortcutRange(s.id)
         const isSelected =
           shortcutPeriod.dataInicial === dataInicial &&
           shortcutPeriod.dataFinal === dataFinal

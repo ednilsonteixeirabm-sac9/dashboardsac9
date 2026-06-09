@@ -66,6 +66,10 @@ export const kpiColors = {
   totalDescontos: sac9Brand.primary,
   quantidadeVendida: '#8B5CF6',
   projecaoMes: '#2563EB',
+  quantidadeVendas: '#0EA5E9',
+  pecasPorVenda: '#8B5CF6',
+  mesmoPeriodoAnoAnterior: sac9Brand.primary,
+  projecaoVsAnoAnterior: sac9Brand.secondaryDark,
 } as const
 
 export const chartPalette = [
